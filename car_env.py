@@ -29,7 +29,7 @@ class CarEnv(gym.Env):
         
         # Track parameters
         self.track_width = 800
-        self.track_height = 600  # Changed to match visualization window
+        self.track_height = 800  # Changed to match visualization window
         self.inner_radius = 150
         self.outer_radius = 250
         self._generate_track()
@@ -70,7 +70,7 @@ class CarEnv(gym.Env):
         """Initialize rendering components"""
         pygame.init()
         self.screen = pygame.display.set_mode((self.track_width, self.track_height))
-        pygame.display.set_caption("Car Racing Environment")
+        pygame.display.set_caption("Car My Environment")
         self.clock = pygame.time.Clock()
         try:
             self.font = pygame.font.SysFont('Arial', 16)
@@ -168,53 +168,96 @@ class CarEnv(gym.Env):
         return self._get_observation(), {}
 
     def step(self, action):
-        """Execute one time step
-        steering, acceleration = np.clip(action, -1, 1)"""
-
-        """Execute one time step with improved physics"""
+        """Execute one time step with improved physics and orientation reward"""
         steering, acceleration = np.clip(action, [-1, -1], [1, 1])
-        
-        """# Update car state
-        self.car_angle += steering * 0.1
-        self.car_speed += acceleration * 0.2
-        self.car_speed = np.clip(self.car_speed, 0, self.max_speed)"""
 
-         # Improved physics
-        self.car_angle += steering * 0.05  # Reduced steering sensitivity
+        # Improved physics: Model car as having some inertia/friction
+        # Steering primarily affects angle, acceleration affects speed
+        # Speed decay (friction)
+        self.car_speed *= 0.98 # Apply a small speed decay each step
+
+        # Acceleration influence (scaled by current speed to make it harder to turn at high speed?)
+        # Or just constant acceleration effect
         self.car_speed += acceleration * 0.1
-        #self.car_speed = np.clip(self.car_speed, -self.max_speed/2, self.max_speed)  # Allow reverse
-        self.car_speed = np.clip(self.car_speed, 0, self.max_speed)  
-        
-        """# Calculate new position
-        new_x = self.car_pos[0] + self.car_speed * math.cos(self.car_angle)
-        new_y = self.car_pos[1] + self.car_speed * math.sin(self.car_angle)
-        new_pos = np.array([new_x, new_y], dtype=np.float32)"""
 
-        # Calculate new position with momentum
+        # Steering influence (scaled by current speed or constant?)
+        # Steering effect might be proportional to speed, but let's keep it simple
+        # self.car_angle += steering * 0.05 * (1 + abs(self.car_speed) / self.max_speed) # Steering more effective at higher speed?
+        self.car_angle += steering * 0.08 # Slightly increased steering sensitivity
+
+        # Clamp speed
+        self.car_speed = np.clip(self.car_speed, -self.max_speed/2, self.max_speed) # Allow reverse
+
+        # Calculate new position
         move_x = self.car_speed * math.cos(self.car_angle)
         move_y = self.car_speed * math.sin(self.car_angle)
         new_pos = np.array([
             self.car_pos[0] + move_x,
             self.car_pos[1] + move_y
         ], dtype=np.float32)
-        
+
         # Check track boundaries
         on_track = self._is_on_track(new_pos)
-        
+
         # Calculate reward
+        base_step_reward = 0.02 # Small reward for surviving each step on track
+
         if on_track:
             self.car_pos = new_pos
-            forward_reward = math.cos(self.car_angle) * self.car_speed * 0.2
-            self.current_reward = forward_reward + 0.1  # Store as instance variable
+
+            # Reward for speed (encourage faster movement)
+            # Let's reward positive speed
+            speed_reward = max(0, self.car_speed) * 0.1
+
+            # Calculate orientation reward
+            center_x, center_y = self.track_width // 2, self.track_height // 2
+            dx = self.car_pos[0] - center_x
+            dy = self.car_pos[1] - center_y
+
+            if dx == 0 and dy == 0:
+                angle_to_center = 0.0
+            else:
+                angle_to_center = math.atan2(dy, dx)
+
+            # Ideal angle for counter-clockwise movement
+            ideal_angle_ccw = (angle_to_center + math.pi / 2) % (2 * math.pi)
+
+            # Calculate angular difference
+            car_angle_normalized = (self.car_angle + math.pi) % (2 * math.pi) - math.pi
+            ideal_angle_normalized = (ideal_angle_ccw + math.pi) % (2 * math.pi) - math.pi
+
+            angle_diff = car_angle_normalized - ideal_angle_normalized
+            if angle_diff > math.pi: angle_diff -= 2 * math.pi
+            elif angle_diff < -math.pi: angle_diff += 2 * math.pi
+
+            # Orientation reward: Penalty for large angle difference
+            # Reward is higher when angle_diff is close to 0
+            # Use a negative quadratic penalty or similar
+            orientation_penalty = (angle_diff / math.pi)**2 # 0 when aligned, 1 when 180 deg off
+
+            orientation_reward = 1.0 - orientation_penalty # Reward between 0 and 1
+
+            # Combine rewards
+            self.current_reward = base_step_reward + speed_reward + orientation_reward * 0.5 # Weighted orientation
+
+            # Small penalty for high steering/acceleration inputs to encourage smooth driving
+            action_penalty = -(abs(steering) + abs(acceleration)) * 0.005
+            self.current_reward += action_penalty
+
+
         else:
-            self.current_reward = -2  # Store as instance variable
-        
+            self.current_reward = -5 # Increased penalty for going off track
+
         terminated = not on_track
-        truncated = False
+        truncated = False # Set truncated False unless you have time limits
         info = {}
-        
+
+        # Optional: Add a small reward shaping based on progress along the track?
+        # This is harder for a simple circular track unless you track laps or segments.
+        # For now, rely on the speed and orientation reward.
+
         return self._get_observation(), self.current_reward, terminated, truncated, info
-    
+
     def render(self):
         """Render environment"""
         if self.screen is None:

@@ -23,7 +23,7 @@ def visualize():
 
     # Load model
     try:
-        model = PPO.load("ppo_car_racing.zip")
+        model = PPO.load("trained_car_model.zip")
         print(f"Model loaded. Expected obs shape: {model.observation_space.shape}")
     except Exception as e:
         print(f"Error loading model: {e}")
