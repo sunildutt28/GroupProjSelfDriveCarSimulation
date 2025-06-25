@@ -54,10 +54,10 @@ def visualize():
         
         # Get action from model
         action, _ = model.predict(obs, deterministic=True)
-        print(f"Action: Should vary between [-1, 1] {action}")  # Should vary between [-1, 1]
+        #print(f"Action: Should vary between [-1, 1] {action}")  # Should vary between [-1, 1]
         obs, reward, done, _, _ = env.step(action)
 
-        print(f"Observation: {obs}, Reward: {reward}, Done: {done}")
+        #print(f"Observation: {obs}, Reward: {reward}, Done: {done}")
         
         # Rendering section with robust error handling
         screen.fill((0, 0, 0))  # Clear screen

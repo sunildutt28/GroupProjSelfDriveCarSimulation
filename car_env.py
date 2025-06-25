@@ -30,14 +30,14 @@ class CarEnv(gym.Env):
         # Track parameters
         self.track_width = 800
         self.track_height = 800  # Changed to match visualization window
-        self.inner_radius = 160
+        self.inner_radius = 150
         self.outer_radius = 250
         self._generate_track()
         
         # Car parameters
         self.car_length = 30
         self.car_width = 15
-        self.max_speed = 5
+        self.max_speed = 7
         self.reset_car_state()
         
         # Rendering
@@ -105,7 +105,7 @@ class CarEnv(gym.Env):
             [self.track_width//2 -  self.inner_radius - 50 , self.track_height//2],
             dtype=np.float32
         )
-        self.car_angle = math.pi/2  # Pointing upwards
+        self.car_angle = 3*math.pi/2  # Pointing upwards
         self.car_speed = 0
 
     def _get_observation(self):
@@ -161,16 +161,16 @@ class CarEnv(gym.Env):
         # Improved physics: Model car as having some inertia/friction
         # Steering primarily affects angle, acceleration affects speed
         # Speed decay (friction)
-        self.car_speed *= 0.7 # Apply a small speed decay each step
+        self.car_speed *= 0.9 # Apply a small speed decay each step
 
         # Acceleration influence (scaled by current speed to make it harder to turn at high speed?)
         # Or just constant acceleration effect
-        self.car_speed += acceleration * 0.5
+        self.car_speed += acceleration * 0.8
 
         # Steering influence (scaled by current speed or constant?)
         # Steering effect might be proportional to speed, but let's keep it simple
         # self.car_angle += steering * 0.05 * (1 + abs(self.car_speed) / self.max_speed) # Steering more effective at higher speed?
-        self.car_angle += steering * 0.1 # Slightly increased steering sensitivity
+        self.car_angle += steering * 0.08 # Slightly increased steering sensitivity
 
         # Clamp speed
         self.car_speed = np.clip(self.car_speed, 0.05, self.max_speed) # Allow reverse
@@ -194,7 +194,7 @@ class CarEnv(gym.Env):
 
             # Reward for speed (encourage faster movement)
             # Let's reward positive speed
-            speed_reward = max(0, self.car_speed) * 0.1
+            speed_reward = max(0, self.car_speed) * 0.3
 
             # Calculate orientation reward
             center_x, center_y = self.track_width // 2, self.track_height // 2
