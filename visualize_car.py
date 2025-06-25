@@ -25,6 +25,9 @@ def visualize():
     try:
         model = PPO.load("trained_car_model.zip")
         print(f"Model loaded. Expected obs shape: {model.observation_space.shape}")
+        print("Policy architecture:", model.policy)
+        print("Observation space:", model.observation_space)
+        print("Action space:", model.action_space)
     except Exception as e:
         print(f"Error loading model: {e}")
         pygame.quit()
@@ -34,22 +37,6 @@ def visualize():
     
     print("Environment reset")
     
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-        
-        action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-        
-        env.render()  # This should now show everything
-        
-        if terminated or truncated:
-            obs, _ = env.reset()
-    
-    env.close()
-    #obs, _ = env.reset()
     
     running = True
     while running:
@@ -57,14 +44,20 @@ def visualize():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-        
+
+        action = env.action_space.sample()
+        obs, reward, terminated, truncated, info = env.step(action)
+
         # Handle observation shape mismatch
         if len(obs) != model.observation_space.shape[0]:
             obs = np.resize(obs, model.observation_space.shape)
         
         # Get action from model
         action, _ = model.predict(obs, deterministic=True)
+        print(f"Action: Should vary between [-1, 1] {action}")  # Should vary between [-1, 1]
         obs, reward, done, _, _ = env.step(action)
+
+        print(f"Observation: {obs}, Reward: {reward}, Done: {done}")
         
         # Rendering section with robust error handling
         screen.fill((0, 0, 0))  # Clear screen

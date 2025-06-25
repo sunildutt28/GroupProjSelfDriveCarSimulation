@@ -30,7 +30,7 @@ class CarEnv(gym.Env):
         # Track parameters
         self.track_width = 800
         self.track_height = 800  # Changed to match visualization window
-        self.inner_radius = 150
+        self.inner_radius = 160
         self.outer_radius = 250
         self._generate_track()
         
@@ -70,7 +70,7 @@ class CarEnv(gym.Env):
         """Initialize rendering components"""
         pygame.init()
         self.screen = pygame.display.set_mode((self.track_width, self.track_height))
-        pygame.display.set_caption("Car My Environment")
+        pygame.display.set_caption("Car - My Environment")
         self.clock = pygame.time.Clock()
         try:
             self.font = pygame.font.SysFont('Arial', 16)
@@ -97,19 +97,6 @@ class CarEnv(gym.Env):
             pygame.draw.polygon(self.track_surface, (255, 255, 255, 255), 
                             [(int(x), int(y)) for x, y in self.inner_track])
         print("Track drawing complete")  # Debug
-
-    def _draw_track(self):
-        """Draw the track onto the track surface"""
-        # Fill background
-        self.track_surface.fill((255, 255, 255, 0))  # Transparent background
-        
-        # Draw outer track (green)
-        pygame.draw.polygon(self.track_surface, (100, 200, 100, 255), 
-                          [(int(x), int(y)) for x, y in self.outer_track])
-        
-        # Draw inner track (white)
-        pygame.draw.polygon(self.track_surface, (255, 255, 255, 255), 
-                          [(int(x), int(y)) for x, y in self.inner_track])
 
     def reset_car_state(self):
         """Reset car to starting position"""
@@ -174,19 +161,19 @@ class CarEnv(gym.Env):
         # Improved physics: Model car as having some inertia/friction
         # Steering primarily affects angle, acceleration affects speed
         # Speed decay (friction)
-        self.car_speed *= 0.98 # Apply a small speed decay each step
+        self.car_speed *= 0.7 # Apply a small speed decay each step
 
         # Acceleration influence (scaled by current speed to make it harder to turn at high speed?)
         # Or just constant acceleration effect
-        self.car_speed += acceleration * 0.1
+        self.car_speed += acceleration * 0.5
 
         # Steering influence (scaled by current speed or constant?)
         # Steering effect might be proportional to speed, but let's keep it simple
         # self.car_angle += steering * 0.05 * (1 + abs(self.car_speed) / self.max_speed) # Steering more effective at higher speed?
-        self.car_angle += steering * 0.08 # Slightly increased steering sensitivity
+        self.car_angle += steering * 0.1 # Slightly increased steering sensitivity
 
         # Clamp speed
-        self.car_speed = np.clip(self.car_speed, -self.max_speed/2, self.max_speed) # Allow reverse
+        self.car_speed = np.clip(self.car_speed, 0.05, self.max_speed) # Allow reverse
 
         # Calculate new position
         move_x = self.car_speed * math.cos(self.car_angle)
@@ -200,7 +187,7 @@ class CarEnv(gym.Env):
         on_track = self._is_on_track(new_pos)
 
         # Calculate reward
-        base_step_reward = 0.02 # Small reward for surviving each step on track
+        base_step_reward = 0.04 # Small reward for surviving each step on track
 
         if on_track:
             self.car_pos = new_pos
@@ -265,16 +252,16 @@ class CarEnv(gym.Env):
             
         try:
             # Clear screen
-            print("Starting render...")  # Debug
+            #print("Starting render...")  # Debug
             self.screen.fill((240, 240, 240))  # Light gray background
-            print("Background filled")  # Debug
+            #print("Background filled")  # Debug
             
             if not hasattr(self, 'track_surface'):
                 print("Track surface missing!")
             else:
-                print(f"Track surface size: {self.track_surface.get_size()}")  # Debug
+                #print(f"Track surface size: {self.track_surface.get_size()}")  # Debug
                 self.screen.blit(self.track_surface, (0, 0))
-                print("Track drawn")  # Debug
+                #print("Track drawn")  # Debug
         
             # Get integer car position
             car_pos_int = (int(self.car_pos[0]), int(self.car_pos[1]))
