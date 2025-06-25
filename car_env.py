@@ -32,8 +32,8 @@ class CarEnv(gym.Env):
         self.track_height = 700  # Changed to match visualization window
         self.inner_radius = 150
         self.outer_radius = 250
-        self._generate_track()
-        
+        self._generate_track() #, no parameter for circular track
+        #self._generate_pentagon_track(5) #pentagon track _generate_track(5)
         # Car parameters
         self.car_length = 30
         self.car_width = 15
@@ -65,6 +65,27 @@ class CarEnv(gym.Env):
             x_outer = center_x + self.outer_radius * math.cos(angle)
             y_outer = center_y + self.outer_radius * math.sin(angle)
             self.outer_track.append((x_outer, y_outer))
+
+    def _generate_pentagon_track(self, num_sides=5):  # default: pentagon
+        self.inner_track = []
+        self.outer_track = []
+        center_x, center_y = self.track_width // 2, self.track_height // 2
+
+        angle_step = 2 * math.pi / num_sides
+
+        for i in range(num_sides):
+            angle = i * angle_step
+            x_inner = center_x + self.inner_radius * math.cos(angle)
+            y_inner = center_y + self.inner_radius * math.sin(angle)
+            x_outer = center_x + self.outer_radius * math.cos(angle)
+            y_outer = center_y + self.outer_radius * math.sin(angle)
+
+            self.inner_track.append((x_inner, y_inner))
+            self.outer_track.append((x_outer, y_outer))
+
+        # Close the polygons
+        self.inner_track.append(self.inner_track[0])
+        self.outer_track.append(self.outer_track[0])
 
     def _init_render(self):
         """Initialize rendering components"""
