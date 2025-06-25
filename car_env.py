@@ -28,8 +28,8 @@ class CarEnv(gym.Env):
         )
         
         # Track parameters
-        self.track_width = 800
-        self.track_height = 800  # Changed to match visualization window
+        self.track_width = 700
+        self.track_height = 700  # Changed to match visualization window
         self.inner_radius = 150
         self.outer_radius = 250
         self._generate_track()
