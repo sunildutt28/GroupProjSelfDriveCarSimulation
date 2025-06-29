@@ -38,7 +38,7 @@ class CarEnv(gym.Env):
         self.obstacles = []  # Will be filled based on track
 
         self._generate_track()
-        #self._place_obstacles_on_track()
+        self._place_obstacles_on_track()
         self._draw_track()
         self._build_track_mask()
 
@@ -55,7 +55,7 @@ class CarEnv(gym.Env):
         except:
             self.font = pygame.font.Font(None, 16)
 
-    def _generate_track(self, num_points=100, waviness=50):
+    def _generate_track(self, num_points=100, waviness=40):
         self.inner_track = []
         self.outer_track = []
         self.track_midline = []
@@ -87,7 +87,7 @@ class CarEnv(gym.Env):
         self.obstacles = []
         for i in range(10, len(self.track_midline), 20):
             x, y = self.track_midline[i]
-            size = 15
+            size = 10
             self.obstacles.append(pygame.Rect(int(x - size / 2), int(y - size / 2), size, size))
 
     def _draw_track(self):

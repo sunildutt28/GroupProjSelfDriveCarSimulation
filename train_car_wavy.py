@@ -54,7 +54,7 @@ def train():
         # Train with debug callback
         print("Starting training (1,000,000 steps)...")
         model.learn(
-            total_timesteps=100_000,
+            total_timesteps=1_000_000,
             callback=DebugCallback()
         )
         
