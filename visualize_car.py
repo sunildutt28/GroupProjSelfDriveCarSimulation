@@ -4,7 +4,7 @@ from stable_baselines3 import PPO
 from car_env import CarEnv
 
 def visualize():
-    # Initialize Pygame with proper error handling
+    # error handling
     try:
         pygame.init()
         screen_width, screen_height = 800, 600
@@ -21,7 +21,7 @@ def visualize():
         print(f"Pygame initialization failed: {e}")
         return
 
-    # Load model
+    # For loading model
     try:
         model = PPO.load("trained_car_model.zip")
         print(f"Model loaded. Expected obs shape: {model.observation_space.shape}")
@@ -40,7 +40,7 @@ def visualize():
     
     running = True
     while running:
-        # Event handling
+        # For Event handling
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -48,18 +48,18 @@ def visualize():
         action = env.action_space.sample()
         obs, reward, terminated, truncated, info = env.step(action)
 
-        # Handle observation shape mismatch
+        # To handle observation shape mismatch
         if len(obs) != model.observation_space.shape[0]:
             obs = np.resize(obs, model.observation_space.shape)
         
-        # Get action from model
+        # Get the action from model
         action, _ = model.predict(obs, deterministic=True)
         #print(f"Action: Should vary between [-1, 1] {action}")  # Should vary between [-1, 1]
         obs, reward, done, _, _ = env.step(action)
 
         #print(f"Observation: {obs}, Reward: {reward}, Done: {done}")
         
-        # Rendering section with robust error handling
+        # Rendering section with error handling
         screen.fill((0, 0, 0))  # Clear screen
         
         try:
@@ -71,18 +71,6 @@ def visualize():
                 render_x = max(0, (screen_width - env_render.get_width()) // 2)
                 render_y = max(0, (screen_height - env_render.get_height()) // 2)
                 screen.blit(env_render, (render_x, render_y))
-            
-            # Text rendering with position validation
-            reward_text = f"Reward: {reward:.2f}"
-            text_surface = font.render(reward_text, True, (255, 255, 255))
-            
-            # Validate text position
-            text_x = 10
-            text_y = 10
-            if text_x < 0 or text_y < 0:
-                text_x, text_y = 0, 0
-            
-            screen.blit(text_surface, (text_x, text_y))
             
         except Exception as e:
             print(f"Rendering error: {e}")
