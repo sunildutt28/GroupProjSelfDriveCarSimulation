@@ -35,8 +35,8 @@ class CarEnv(gym.Env):
         self._generate_track() #, no parameter for circular track
         #self._generate_pentagon_track(5) #pentagon track _generate_track(5)
         # Car parameters
-        self.car_length = 30
-        self.car_width = 15
+        self.car_length = 50
+        self.car_width = 20
         self.max_speed = 7
         self.reset_car_state()
         
@@ -44,10 +44,20 @@ class CarEnv(gym.Env):
         self.screen = None
         self.clock = None
         self.font = None
-        self.ray_colors = [(255, 0, 0, 128) for _ in range(16)]  # Semi-transparent red
-        
+        self.ray_colors = [(255, 0, 0, 0) for _ in range(16)] # 16 rays, semi-transparent red
         if self.render_mode == 'human':
             self._init_render()
+        
+        # Load car image
+        self.car_image = None
+        try:
+            self.car_image = pygame.image.load("BlueCar.png").convert_alpha()
+            # Resize the image to match car dimensions
+            self.car_image = pygame.transform.scale(self.car_image, (self.car_length, self.car_width))
+            print("Car image loaded successfully.")
+        except pygame.error as e:
+            print(f"Warning: Unable to load car image 'BlueCar.png': {e}")
+            self.car_image = None # Ensure car_image is None if loading fails
 
     def _generate_track(self):
         """Generate track boundaries as two separate polygons"""
@@ -66,7 +76,7 @@ class CarEnv(gym.Env):
             y_outer = center_y + self.outer_radius * math.sin(angle)
             self.outer_track.append((x_outer, y_outer))
 
-    def _generate_pentagon_track(self, num_sides=5):  # default: pentagon
+    def _generate_pentagon_track(self, num_sides=5):  # default: pentagon with 5 sides
         self.inner_track = []
         self.outer_track = []
         center_x, center_y = self.track_width // 2, self.track_height // 2
@@ -300,16 +310,25 @@ class CarEnv(gym.Env):
                     (int(end_x), int(end_y)),
                     2
                 )
-            
-            # Draw car
-            car_surface = pygame.Surface((self.car_length, self.car_width), pygame.SRCALPHA)
-            pygame.draw.rect(car_surface, (200, 0, 0, 255), (0, 0, self.car_length, self.car_width))
-            
-            # Rotate car
-            rotated_car = pygame.transform.rotate(car_surface, -self.car_angle * 180/math.pi)
-            car_rect = rotated_car.get_rect(center=car_pos_int)
-            self.screen.blit(rotated_car, car_rect)
-            
+             # Draw car
+            if self.car_image:
+            # Rotate the car image
+            # Pygame rotates counter-clockwise, math angles are usually counter-clockwise from positive x
+            # Need to adjust rotation based on how your image is oriented and your car_angle definition
+            # Assuming your image is oriented facing right (positive x), rotate by -self.car_angle * 180/math.pi
+                rotated_car = pygame.transform.rotate(self.car_image, -self.car_angle * 180 / math.pi)
+                car_rect = rotated_car.get_rect(center=car_pos_int)
+                self.screen.blit(rotated_car, car_rect)
+            else:   
+                # Draw car
+                car_surface = pygame.Surface((self.car_length, self.car_width), pygame.SRCALPHA)
+                pygame.draw.rect(car_surface, (200, 0, 0, 255), (0, 0, self.car_length, self.car_width))
+                
+                # Rotate car
+                rotated_car = pygame.transform.rotate(car_surface, -self.car_angle * 180/math.pi)
+                car_rect = rotated_car.get_rect(center=car_pos_int)
+                self.screen.blit(rotated_car, car_rect)
+                
             # Display info - now using self.current_reward
             speed_text = self.font.render(f"Speed: {self.car_speed:.1f}", True, (0, 0, 0))
             self.screen.blit(speed_text, (10, 10))
