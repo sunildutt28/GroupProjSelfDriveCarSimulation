@@ -55,7 +55,7 @@ class CarEnv(gym.Env):
         except:
             self.font = pygame.font.Font(None, 16)
 
-    def _generate_track(self, num_points=100, waviness=40):
+    def _generate_track(self, num_points=100, waviness=90):
         self.inner_track = []
         self.outer_track = []
         self.track_midline = []
@@ -146,7 +146,7 @@ class CarEnv(gym.Env):
         return self._get_observation(), {}
 
     def step(self, action):
-        steering, acceleration = np.clip(action, [-1, -1], [1, 1])
+        steering, acceleration = np.clip(action, [-0.5, -1], [0.5, 1])
         self.car_speed *= 0.9
         self.car_speed += acceleration * 0.8
         self.car_angle += steering * 0.04
@@ -164,7 +164,7 @@ class CarEnv(gym.Env):
 
         if on_track:
             self.car_pos = new_pos
-            reward = 0.05 + max(0, self.car_speed) * 0.1
+            reward = 0.05 + max(0, self.car_speed) * 0.15
         else:
             reward = -10.0
 

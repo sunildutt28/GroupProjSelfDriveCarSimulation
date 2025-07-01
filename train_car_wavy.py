@@ -34,7 +34,7 @@ def train():
             env,
             verbose=1,
             #learning_rate=2.5e-4,
-            learning_rate=0.001,
+            learning_rate=0.005,
             n_steps=4096,
             batch_size=128,
             n_epochs=10,
