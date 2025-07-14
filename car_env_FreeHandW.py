@@ -33,6 +33,16 @@ class CarEnv(gym.Env):
         self.font = None
         self.ray_colors = [(0, 255, 0, 128) for _ in range(16)]
 
+        self.pickup_point = (330, 350)
+        self.dropoff_point = (620, 580)
+        self.pickup_radius = 20
+        self.dropoff_radius = 20
+        self.passenger_picked = False
+
+        self.pickup_timer = 0
+        self.required_pickup_frames = 600  # 10 seconds at 60 FPS
+
+
         self._load_track_from_image(self.track_image_path)
 
         if self.render_mode == 'human':
@@ -83,6 +93,9 @@ class CarEnv(gym.Env):
         self.car_pos = np.array([430, 520], dtype=np.float32)
         self.car_angle = -math.pi 
         self.car_speed = 0
+        self.passenger_picked = False
+        self.pickup_timer = 0
+
 
     def _get_observation(self):
         distances = [self._raycast(self.car_pos, self.car_angle + angle)
@@ -111,6 +124,8 @@ class CarEnv(gym.Env):
 
         on_track = self._is_on_track(new_pos)
 
+        reward = -0.01  # small penalty per step to encourage progress
+
         if on_track:
             self.car_pos = new_pos
             # Base rewards
@@ -131,9 +146,36 @@ class CarEnv(gym.Env):
                 if direction_pixel[:3] == (0, 0, 0):
                     reward += 0.1
                 else:
-                    reward -= 0.1  # discourage misalignment
+                    reward -= 0.1 # discourage misalignment
+
+
+            # pickup
+            if not self.passenger_picked:
+                if np.linalg.norm(self.car_pos - np.array(self.pickup_point)) < self.pickup_radius:
+                    self.pickup_timer += 1
+                    reward += 0.05  # small reward for waiting
+                    if self.pickup_timer >= self.required_pickup_frames:
+                        self.passenger_picked = True
+                        reward += 5.0  # bonus for completing pickup
+                else:
+                    self.pickup_timer = 0  # reset timer if car moves away
+
+
+            # Drop-off point
+            elif self.passenger_picked:
+                if np.linalg.norm(self.car_pos - np.array(self.dropoff_point)) < self.dropoff_radius:
+                    reward += 10.0  # drop-off bonus
+                    terminated = True
+                    truncated = False
+                    self.current_reward = reward
+                    return self._get_observation(), reward, terminated, truncated, {}
+
         else:
             reward = -10.0
+            terminated = True
+            truncated = False
+            self.current_reward = reward
+            return self._get_observation(), reward, terminated, truncated, {}
 
 
 
@@ -159,6 +201,11 @@ class CarEnv(gym.Env):
         rotated_car = pygame.transform.rotate(car_surface, -self.car_angle * 180 / math.pi)
         car_rect = rotated_car.get_rect(center=car_pos_int)
         self.screen.blit(rotated_car, car_rect)
+
+        # Draw pickup and dropoff points
+        pygame.draw.circle(self.screen, (255, 255, 0), self.pickup_point, self.pickup_radius, 2)
+        pygame.draw.circle(self.screen, (0, 255, 255), self.dropoff_point, self.dropoff_radius, 2)
+
         speed_text = self.font.render(f"Speed: {self.car_speed:.1f}", True, (0, 0, 0))
         reward_text = self.font.render(f"Reward: {self.current_reward:.1f}", True, (0, 0, 0))
         self.screen.blit(speed_text, (10, 10))
