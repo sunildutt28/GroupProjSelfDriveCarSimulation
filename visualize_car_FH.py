@@ -73,8 +73,8 @@ def visualize():
                 screen.blit(env_render, (render_x, render_y))
             
             # Text rendering with position validation
-            reward_text = f"Reward: {reward:.2f}"
-            text_surface = font.render(reward_text, True, (255, 255, 255))
+            #reward_text = f"Reward: {reward:.2f}"
+            #text_surface = font.render(reward_text, True, (255, 255, 255))
             
             # Validate text position
             text_x = 10
@@ -82,7 +82,7 @@ def visualize():
             if text_x < 0 or text_y < 0:
                 text_x, text_y = 0, 0
             
-            screen.blit(text_surface, (text_x, text_y))
+            #screen.blit(text_surface, (text_x, text_y))
             
         except Exception as e:
             print(f"Rendering error: {e}")

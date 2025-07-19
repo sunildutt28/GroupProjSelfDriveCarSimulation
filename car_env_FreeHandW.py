@@ -25,7 +25,7 @@ class CarEnv(gym.Env):
 
         self.car_length = 30
         self.car_width = 15
-        self.max_speed = 8
+        self.max_speed = 5
         self.reset_car_state()
 
         self.screen = None
@@ -33,9 +33,9 @@ class CarEnv(gym.Env):
         self.font = None
         self.ray_colors = [(0, 255, 0, 128) for _ in range(16)]
 
-        self.pickup_point = (330, 350)
+        self.pickup_point = (300, 350)
         self.dropoff_point = (620, 580)
-        self.pickup_radius = 20
+        self.pickup_radius = 15
         self.dropoff_radius = 20
         self.passenger_picked = False
 
@@ -114,8 +114,8 @@ class CarEnv(gym.Env):
     def step(self, action):
         steering, acceleration = np.clip(action, [-0.5, -1], [0.5, 1])
         self.car_speed *= 0.9
-        self.car_speed += acceleration * 0.8
-        self.car_angle += steering * 0.04
+        self.car_speed += acceleration * 0.5
+        self.car_angle += steering * 0.09
         self.car_speed = np.clip(self.car_speed, 0.05, self.max_speed)
 
         move_x = self.car_speed * math.cos(self.car_angle)
@@ -134,7 +134,7 @@ class CarEnv(gym.Env):
 
             # --- Orientation reward ---
             # Look ahead a small distance
-            lookahead_dist = 20
+            lookahead_dist = 30
             forward_x = self.car_pos[0] + lookahead_dist * math.cos(self.car_angle)
             forward_y = self.car_pos[1] + lookahead_dist * math.sin(self.car_angle)
 
@@ -153,7 +153,7 @@ class CarEnv(gym.Env):
             if not self.passenger_picked:
                 if np.linalg.norm(self.car_pos - np.array(self.pickup_point)) < self.pickup_radius:
                     self.pickup_timer += 1
-                    reward += 0.05  # small reward for waiting
+                    reward += 0.1  # small reward for waiting
                     if self.pickup_timer >= self.required_pickup_frames:
                         self.passenger_picked = True
                         reward += 5.0  # bonus for completing pickup
