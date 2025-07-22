@@ -28,13 +28,14 @@ def train():
         
         # Setup environment
         # Note: TD3 doesn't support multiple envs natively like PPO, so we use n_envs=1
-        env = make_vec_env(lambda: CarEnv(), n_envs=1)
+        # env = make_vec_env(lambda: CarEnv(), n_envs=1)
+        env = CarEnv()
         
         # Create action noise for TD3 (helps with exploration)
         n_actions = env.action_space.shape[-1]
         action_noise = NormalActionNoise(
             mean=np.zeros(n_actions),
-            sigma=0.1 * np.ones(n_actions)
+            sigma=0.2 * np.ones(n_actions)
         )
         
         # Model configuration
@@ -59,7 +60,7 @@ def train():
         # Train with debug callback
         print("Starting training (1,000,000 steps)...")
         model.learn(
-            total_timesteps=100_000,
+            total_timesteps=500_000,
             callback=DebugCallback()
         )
         
