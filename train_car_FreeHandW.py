@@ -3,25 +3,45 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import BaseCallback
 import time
+import os
+import matplotlib.pyplot as plt
 from car_env_FreeHandW import CarEnv
 
-class DebugCallback(BaseCallback):
-    def __init__(self, verbose=0):
+class RewardLoggerCallback(BaseCallback):
+    def __init__(self, check_freq: int, verbose=0):
         super().__init__(verbose)
-        self.last_time = time.time()
-        self.last_step = 0
+        self.check_freq = check_freq
+        self.episode_rewards = []
+        self.episode_lengths = []
+        self.current_episode_rewards = []
+        self.timesteps = []
         
     def _on_step(self) -> bool:
-        if self.num_timesteps % 100 == 0:
-            now = time.time()
-            fps = (self.num_timesteps - self.last_step)/(now - self.last_time)
-            print(f"Step: {self.num_timesteps} | FPS: {fps:.1f}")
-            self.last_time = now
-            self.last_step = self.num_timesteps
+        # Collect rewards for each environment
+        for i in range(len(self.locals['infos'])):
+            if 'episode' in self.locals['infos'][i]:
+                reward = self.locals['infos'][i]['episode']['r']
+                length = self.locals['infos'][i]['episode']['l']
+                self.episode_rewards.append(reward)
+                self.episode_lengths.append(length)
+                self.timesteps.append(self.num_timesteps)
+                
+        if self.num_timesteps % self.check_freq == 0:
+            self._log_progress()
+            
         return True
+    
+    def _log_progress(self):
+        if len(self.episode_rewards) > 0:
+            mean_reward = np.mean(self.episode_rewards[-100:])  # Last 100 episodes
+            mean_length = np.mean(self.episode_lengths[-100:])
+            print(f"Timestep: {self.num_timesteps}")
+            print(f"Mean reward (last 100 episodes): {mean_reward:.2f}")
+            print(f"Mean episode length (last 100 episodes): {mean_length:.2f}")
+            print("-" * 40)
 
 def train():
-    env = None  # Initialize env variable
+    env = None
     try:
         print("Initializing training...")
         
@@ -33,7 +53,6 @@ def train():
             "MlpPolicy",
             env,
             verbose=1,
-            #learning_rate=2.5e-4,
             learning_rate=0.005,
             n_steps=4096,
             batch_size=128,
@@ -51,20 +70,29 @@ def train():
             }
         )
         
-        # Train with debug callback
+        # Train with reward logging callback
         print("Starting training (1,000,000 steps)...")
+        callback = RewardLoggerCallback(check_freq=10000)
         model.learn(
             total_timesteps=1_000_000,
-            callback=DebugCallback()
+            callback=callback
         )
         
         model.save("trained_car_model_FH.zip")
         print("\nTraining completed. Model saved.")
         
+        # Save training data for plotting
+        training_data = {
+            'timesteps': callback.timesteps,
+            'rewards': callback.episode_rewards,
+            'lengths': callback.episode_lengths
+        }
+        np.save("training_data.npy", training_data)
+        
     except Exception as e:
         print(f"\nTraining failed: {str(e)}")
     finally:
-        if env is not None:  # Only close if env was created
+        if env is not None:
             env.close()
             print("Environment closed")
         else:
