@@ -27,49 +27,59 @@ class TrainCallback(BaseCallback):
         return True
 
 def train():
-    # Create environment
-    env = CarEnv()
-    
-    # Create action noise for exploration
-    n_actions = env.action_space.shape[-1]
-    action_noise = NormalActionNoise(
-        mean=np.zeros(n_actions),
-        sigma=0.2 * np.ones(n_actions)  # Slightly higher noise for better exploration
-    )
-    
-    # Configure TD3 model with corrected buffer settings
-    model = TD3(
-        "MlpPolicy",
-        env,
-        learning_rate=3e-4,  # More stable learning rate
-        buffer_size=200000,
-        batch_size=256,
-        action_noise=action_noise,
-        optimize_memory_usage=False,  # CHANGED: Disabled memory optimization
-        policy_kwargs=dict(net_arch=[256, 256]),
-        gamma=0.99,
-        tau=0.005,
-        train_freq=(1, "step"),
-        gradient_steps=1,
-        verbose=1,
-        tensorboard_log="./td3_car_tensorboard/",
-        replay_buffer_kwargs=dict(handle_timeout_termination=True)  # Explicitly enable timeout handling
-    )
-    
-    # Create logs directory
-    os.makedirs("./td3_car_logs/", exist_ok=True)
-    
-    print("Starting training...")
-    model.learn(
-        total_timesteps=500_000,
-        callback=TrainCallback(check_freq=1000),
-        log_interval=10,
-        tb_log_name="TD3_run"
-    )
-    
-    # Save model
-    model.save("td3_car_model")
-    print("Training completed and model saved.")
+    env = None  # Initialize env variable
+    try:
+        print("Initializing training...")
+        
+        # Setup environment
+        # Note: TD3 doesn't support multiple envs natively like PPO, so we use n_envs=1
+        # env = make_vec_env(lambda: CarEnv(), n_envs=1)
+        env = CarEnv()
+        
+        # Create action noise for TD3 (helps with exploration)
+        n_actions = env.action_space.shape[-1]
+        action_noise = NormalActionNoise(
+            mean=np.zeros(n_actions),
+            sigma=0.2 * np.ones(n_actions)
+        )
+        
+        # Model configuration
+        model = TD3(
+            "MlpPolicy",
+            env,
+            verbose=1,
+            learning_rate=0.001,  # Typically lower than PPO
+            buffer_size=1000000,  # Replay buffer size
+            batch_size=100,       # Batch size for training
+            gamma=0.99,          # Discount factor
+            tau=0.005,           # Target network update rate
+            policy_delay=2,      # Policy update delay (TD3 specific)
+            action_noise=action_noise,
+            train_freq=(1, "step"),  # Update every step
+            gradient_steps=1,    # Gradient steps per update
+            policy_kwargs={
+                'net_arch': [256, 256]  # Network architecture for both actor and critic
+            }
+        )
+        
+        # Train with debug callback
+        print("Starting training (1,000,000 steps)...")
+        model.learn(
+            total_timesteps=500_000,
+            callback=DebugCallback()
+        )
+        
+        model.save("trained_car_model_FH_TD3.zip")
+        print("\nTraining completed. Model saved.")
+        
+    except Exception as e:
+        print(f"\nTraining failed: {str(e)}")
+    finally:
+        if env is not None:  # Only close if env was created
+            env.close()
+            print("Environment closed")
+        else:
+            print("No environment to close")
 
 if __name__ == "__main__":
     train()
