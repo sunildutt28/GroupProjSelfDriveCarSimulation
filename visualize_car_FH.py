@@ -36,6 +36,7 @@ def visualize():
     env = CarEnv(render_mode='human')
     
     print("Environment reset")
+    print("Passenger not picked yet, checking pickup conditions...")
     
     
     running = True

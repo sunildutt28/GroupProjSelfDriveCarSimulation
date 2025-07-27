@@ -114,8 +114,9 @@ class CarEnv(gym.Env):
     def step(self, action):
         steering, acceleration = np.clip(action, [-0.5, -1], [0.5, 1])
         self.car_speed *= 0.9
-        self.car_speed += acceleration * 0.5
-        self.car_angle += steering * 0.09
+        self.car_speed += acceleration * 0.3
+        steering_sensitivity = 0.09 * (1 - 0.7*(self.car_speed/self.max_speed))
+        self.car_angle += steering * steering_sensitivity
         self.car_speed = np.clip(self.car_speed, 0.05, self.max_speed)
 
         move_x = self.car_speed * math.cos(self.car_angle)
@@ -148,27 +149,27 @@ class CarEnv(gym.Env):
                 else:
                     reward -= 0.1 # discourage misalignment
 
+            
 
             # pickup
             if not self.passenger_picked:
                 if np.linalg.norm(self.car_pos - np.array(self.pickup_point)) < self.pickup_radius:
+                    print("Passenger picked up!")
                     self.pickup_timer += 1
-                    reward += 0.1  # small reward for waiting
+                    reward += 1 # small reward 
                     if self.pickup_timer >= self.required_pickup_frames:
                         self.passenger_picked = True
                         reward += 5.0  # bonus for completing pickup
                 else:
                     self.pickup_timer = 0  # reset timer if car moves away
 
-
+            
             # Drop-off point
-            elif self.passenger_picked:
-                if np.linalg.norm(self.car_pos - np.array(self.dropoff_point)) < self.dropoff_radius:
-                    reward += 10.0  # drop-off bonus
-                    terminated = True
-                    truncated = False
-                    self.current_reward = reward
-                    return self._get_observation(), reward, terminated, truncated, {}
+            if np.linalg.norm(self.car_pos - np.array(self.dropoff_point)) < self.dropoff_radius:
+                print("Passenger dropped off!")
+                reward += 10.0  # drop-off bonus
+                self.reset_car_state()  # Reset car state instead of terminating
+                return self._get_observation(), reward, False, False, {}
 
         else:
             reward = -10.0
@@ -177,12 +178,11 @@ class CarEnv(gym.Env):
             self.current_reward = reward
             return self._get_observation(), reward, terminated, truncated, {}
 
-
-
         terminated = not on_track
         truncated = False
         self.current_reward = reward
         return self._get_observation(), reward, terminated, truncated, {}
+    
 
     def render(self):
         if self.screen is None:
