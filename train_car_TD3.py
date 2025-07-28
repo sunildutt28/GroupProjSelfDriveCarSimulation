@@ -48,10 +48,10 @@ def train():
             "MlpPolicy",
             env,
             verbose=1,
-            learning_rate=0.001,  # Typically lower than PPO
+            learning_rate=0.007,  # Typically lower than PPO
             buffer_size=1000000,  # Replay buffer size
             batch_size=100,       # Batch size for training
-            gamma=0.99,          # Discount factor
+            gamma=0.9,          # Discount factor
             tau=0.005,           # Target network update rate
             policy_delay=2,      # Policy update delay (TD3 specific)
             action_noise=action_noise,
@@ -65,8 +65,8 @@ def train():
         # Train with debug callback
         print("Starting training (1,000,000 steps)...")
         model.learn(
-            total_timesteps=500_000,
-            callback=DebugCallback()
+            total_timesteps=100_000,
+            callback=TrainCallback()
         )
         
         model.save("trained_car_model_FH_TD3.zip")
