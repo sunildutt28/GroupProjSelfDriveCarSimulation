@@ -60,7 +60,7 @@ class CarEnv(gym.Env):
             self.car_image = None # Ensure car_image is None if loading fails
 
     def _generate_track(self):
-        """Generate track boundaries as two separate polygons"""
+        """Generate track boundaries as two separate circles"""
         self.inner_track = []
         self.outer_track = []
         center_x, center_y = self.track_width//2, self.track_height//2
