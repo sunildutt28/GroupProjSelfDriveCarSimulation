@@ -19,7 +19,7 @@ class CarEnv(gym.Env):
             dtype=np.float32
         )
         
-        # Observation space: 16 rays + velocity x/y + angle = 19 dimensions
+        # Observation space: 16 virtual rays + velocity x/y + angle = 19 dimensions
         self.observation_space = spaces.Box(
             low=0,
             high=1,
